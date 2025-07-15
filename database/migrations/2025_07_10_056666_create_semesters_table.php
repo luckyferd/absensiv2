@@ -19,10 +19,7 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        // Tambahkan foreign key ke tabel kelas kalau perlu
-        Schema::table('kelas', function (Blueprint $table) {
-            $table->foreignId('semester_id')->nullable()->constrained('semesters')->cascadeOnDelete();
-        });
+       
     }
 
     /**

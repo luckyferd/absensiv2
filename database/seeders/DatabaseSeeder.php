@@ -3,31 +3,24 @@
 namespace Database\Seeders;
 
 use App\Models\Role;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
         $this->call([
             SemesterSeeder::class,
+            RoleSeeder::class,
         ]);
-        // Seed roles terlebih dahulu
-        $this->call(RoleSeeder::class);
 
-        // Ambil role yang sudah dibuat
         $adminRole = Role::where('name', 'Admin')->first();
         $guruRole = Role::where('name', 'Guru')->first();
         $siswaRole = Role::where('name', 'Siswa')->first();
 
-        // Buat user admin
+        // Admin pakai email
         User::factory()->create([
             'name' => 'Admin',
             'email' => 'admin@example.com',
@@ -35,7 +28,7 @@ class DatabaseSeeder extends Seeder
             'role_id' => $adminRole->id,
         ]);
 
-        // Buat user guru
+        // Guru pakai email
         User::factory()->create([
             'name' => 'Guru Contoh',
             'email' => 'guru@example.com',
@@ -43,10 +36,11 @@ class DatabaseSeeder extends Seeder
             'role_id' => $guruRole->id,
         ]);
 
-        // Buat user siswa
+        // Siswa contoh pakai NISN
         User::factory()->create([
             'name' => 'Siswa Contoh',
-            'email' => 'siswa@example.com',
+            'nisn' => '1234567890',   // 🔑 Ini contoh NISN
+            'email' => null,          // Boleh null kalau memang tidak pakai email
             'password' => Hash::make('password123'),
             'role_id' => $siswaRole->id,
         ]);

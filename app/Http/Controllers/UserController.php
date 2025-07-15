@@ -11,51 +11,38 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class UserController extends BaseController
 {
-    /**
-     * Display a listing of the resource.
-     */
-     // Pastikan hanya Admin yang boleh akses
-     use AuthorizesRequests, ValidatesRequests;
-     public function __construct()
-     {
-         $this->middleware(['auth:sanctum']);
-          // Tambahan cek role di semua method
-    $this->middleware(function ($request, $next) {
-        if (auth()->user()->role->name !== 'Admin') {  
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+    use AuthorizesRequests, ValidatesRequests;
 
-        return $next($request);
-    });
-     }
-
-     public function index(Request $request)
-     {
-         $users = User::with('role')
-             ->whereHas('role', function ($q) {
-                 $q->whereIn('name', ['Guru', 'Siswa']);
-             })
-             ->paginate($request->get('per_page', 10)); // default 10 per page
-     
-         return response()->json($users);
-     }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function __construct()
     {
-        //
+        $this->middleware(['auth:sanctum']);
+
+        // Cek role hanya Admin
+        $this->middleware(function ($request, $next) {
+            if (auth()->user()->role->name !== 'Admin') {
+                return response()->json(['message' => 'Unauthorized'], 403);
+            }
+            return $next($request);
+        });
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
+    public function index(Request $request)
+    {
+        $users = User::with('role')
+            ->whereHas('role', function ($q) {
+                $q->whereIn('name', ['Guru', 'Siswa']);
+            })
+            ->paginate($request->get('per_page', 10));
+
+        return response()->json($users);
+    }
+
     public function store(Request $request)
     {
         $request->validate([
             'name'     => 'required|string',
-            'email'    => 'required|email|unique:users',
+            'email'    => 'nullable|email|unique:users',
+            'nisn'     => 'nullable|string|unique:users',
             'password' => 'required|string|min:6',
             'role_id'  => 'required|exists:roles,id',
         ]);
@@ -63,9 +50,10 @@ class UserController extends BaseController
         $user = User::create([
             'name'     => $request->name,
             'email'    => $request->email,
+            'nisn'     => $request->nisn,
             'password' => Hash::make($request->password),
             'role_id'  => $request->role_id,
-            'email_verified_at'  => now(), // <- ini tambahan biar langsung aktif
+            'email_verified_at' => $request->email ? now() : null,
         ]);
 
         return response()->json([
@@ -74,33 +62,20 @@ class UserController extends BaseController
         ], 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show($id)
     {
         $user = User::with('role')->findOrFail($id);
         return response()->json($user);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, $id)
     {
-         $user = User::findOrFail($id);
+        $user = User::findOrFail($id);
 
         $request->validate([
             'name'     => 'sometimes|string',
-            'email'    => 'sometimes|email|unique:users,email,' . $id,
+            'email'    => 'nullable|email|unique:users,email,' . $id,
+            'nisn'     => 'nullable|string|unique:users,nisn,' . $id,
             'password' => 'nullable|string|min:6',
             'role_id'  => 'sometimes|exists:roles,id',
         ]);
@@ -108,6 +83,7 @@ class UserController extends BaseController
         $user->update([
             'name'     => $request->name ?? $user->name,
             'email'    => $request->email ?? $user->email,
+            'nisn'     => $request->nisn ?? $user->nisn,
             'role_id'  => $request->role_id ?? $user->role_id,
         ]);
 
@@ -122,23 +98,18 @@ class UserController extends BaseController
         ]);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy( $id)
+    public function destroy($id)
     {
         $user = User::findOrFail($id);
 
-        // 🔒 Cegah admin menghapus akun sendiri
-        if (auth()->id() == $user->id) { //diubah dari id() pakai tanda kurung
+        if (auth()->id() == $user->id) {
             return response()->json(['message' => 'Tidak bisa menghapus akun sendiri'], 403);
         }
-    
+
         $user->delete();
-    
+
         return response()->json([
             'message' => 'User deleted'
         ]);
     }
-   
 }
